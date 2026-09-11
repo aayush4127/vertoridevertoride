@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudentProfile } from '../types';
+import { UserAvatar } from './UserAvatar';
+import { getInitials } from '../utils/avatarUtils';
 import { 
   User, 
   ShieldCheck, 
@@ -17,7 +19,11 @@ import {
   Car, 
   Clock, 
   HeartHandshake,
-  LogOut
+  LogOut,
+  Camera,
+  Upload,
+  Trash2,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface ProfileSectionProps {
@@ -33,10 +39,45 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formData, setFormData] = useState<StudentProfile>(user);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFormData(user);
   }, [user]);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please select a valid image file (PNG, JPG, WebP).');
+      return;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      setPhotoError('Image size must be less than 4MB.');
+      return;
+    }
+
+    setPhotoError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setFormData((prev) => ({ ...prev, avatar: result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoError(null);
+    setFormData((prev) => ({ ...prev, avatar: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,20 +118,29 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-6 border-b border-slate-100">
           
           <div className="flex items-center gap-5">
-            <div className="relative">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-indigo-100 shadow-sm"
+            <div className="relative group">
+              <UserAvatar
+                name={user.name}
+                avatar={user.avatar}
+                size="2xl"
+                shape="rounded"
+                showVerificationBadge={true}
+                isVerified={user.verifiedStudent}
               />
-              {user.verifiedStudent && (
-                <div 
-                  className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-1 rounded-full border-2 border-white shadow-xs"
-                  title="Official LPU Verified Student"
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-              )}
+              
+              {/* Quick edit photo trigger on hover */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(true);
+                  setTimeout(() => fileInputRef.current?.click(), 100);
+                }}
+                className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
+                title="Change or upload profile photo"
+              >
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span className="text-[10px] font-bold">Edit Photo</span>
+              </button>
             </div>
 
             <div className="space-y-1">
@@ -132,8 +182,69 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
         {/* Edit Profile Form */}
         {isEditing && (
-          <form onSubmit={handleSave} className="mt-6 p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 text-xs">
-            <h3 className="font-bold text-slate-900 text-sm">Update Student Profile Details</h3>
+          <form onSubmit={handleSave} className="mt-6 p-5 sm:p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-5 text-xs">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">Update Student Profile & Photo</h3>
+              <span className="text-[11px] text-slate-500">Changes are saved to your student pass</span>
+            </div>
+
+            {/* Profile Picture Upload / Switch to Initials Section */}
+            <div className="p-4 bg-white rounded-2xl border border-slate-200 space-y-3">
+              <label className="font-bold text-slate-800 text-xs block">Profile Picture</label>
+              
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <UserAvatar
+                  name={formData.name || 'Student'}
+                  avatar={formData.avatar}
+                  size="xl"
+                  shape="rounded"
+                />
+
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handlePhotoUpload}
+                      accept="image/png, image/jpeg, image/jpg, image/webp"
+                      className="hidden"
+                      id="profile-photo-file-input"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 text-xs transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{formData.avatar ? 'Change Photo' : 'Upload Student Photo'}</span>
+                    </button>
+
+                    {formData.avatar && (
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold border border-rose-200 text-xs transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remove (Use Initials)</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-slate-500">
+                    {formData.avatar 
+                      ? 'Custom photo active. You can upload a new one or click remove to use your name initials.' 
+                      : `Currently using initials badge "${getInitials(formData.name)}". You can upload your photo above.`
+                    }
+                  </p>
+
+                  {photoError && (
+                    <p className="text-xs text-rose-600 font-medium">{photoError}</p>
+                  )}
+                </div>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -180,10 +291,13 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
               <button
                 type="button"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setFormData(user);
+                  setIsEditing(false);
+                }}
                 className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-200"
               >
                 Cancel

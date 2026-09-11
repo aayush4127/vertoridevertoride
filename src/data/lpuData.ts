@@ -159,7 +159,7 @@ export const CURRENT_USER: StudentProfile = {
   regNumber: '12115892',
   course: 'B.Tech Computer Science & Engineering',
   batch: '2022 - 2026 (4th Year)',
-  avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+  avatar: '',
   phone: '+91 98765-43210',
   email: 'aarav.12115892@lpu.in',
   rating: 4.9,

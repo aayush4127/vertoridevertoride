@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { VertoRideLogo } from './VertoRideLogo';
+import { UserAvatar } from './UserAvatar';
+import { getInitials } from '../utils/avatarUtils';
 import { 
   ShieldCheck, 
   Lock, 
@@ -18,13 +19,14 @@ import {
   AlertCircle,
   HelpCircle,
   Info,
-  Sun,
-  Moon
+  Camera,
+  Upload,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const { signIn, signUp, loginDemo, error, clearError } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
   
   const [activeMode, setActiveMode] = useState<'signin' | 'signup'>('signin');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -48,8 +50,46 @@ export const AuthPage: React.FC = () => {
     phone: '',
     password: '',
     confirmPassword: '',
+    avatar: '',
     agreeTerms: true
   });
+
+  const [photoOption, setPhotoOption] = useState<'upload' | 'initials'>('initials');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setValidationError('Please select an image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    // Limit to 4MB
+    if (file.size > 4 * 1024 * 1024) {
+      setValidationError('Image size must be less than 4MB.');
+      return;
+    }
+
+    setValidationError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setSignUpData((prev) => ({ ...prev, avatar: result }));
+        setPhotoOption('upload');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    setSignUpData((prev) => ({ ...prev, avatar: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
@@ -161,7 +201,8 @@ export const AuthPage: React.FC = () => {
         course: signUpData.course,
         phone: signUpData.phone || '+91 98000-00000',
         gender: signUpData.gender,
-        blockOrHostel: signUpData.blockOrHostel
+        blockOrHostel: signUpData.blockOrHostel,
+        avatar: signUpData.avatar || ''
       });
     } catch (err: any) {
       // handled
@@ -186,26 +227,6 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 flex flex-col justify-between py-8 px-4 sm:px-6 lg:px-8 text-slate-100 relative overflow-hidden">
-      {/* Top right theme toggle */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-30">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="p-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 border border-white/15 backdrop-blur-md transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-          title={isDark ? "Switch to Daylight Mode" : "Switch to Late-Night Commute Mode"}
-          aria-label="Toggle theme"
-        >
-          {isDark ? (
-            <Sun className="w-4 h-4 text-amber-400" />
-          ) : (
-            <Moon className="w-4 h-4 text-indigo-300" />
-          )}
-          <span className="text-[11px] font-semibold hidden sm:inline">
-            {isDark ? 'Night Mode' : 'Day Mode'}
-          </span>
-        </button>
-      </div>
-
       {/* Background glowing ambient orbs */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
@@ -221,7 +242,7 @@ export const AuthPage: React.FC = () => {
 
         <div className="flex justify-center items-center">
           <div className="scale-110 sm:scale-125 py-2">
-            <VertoRideLogo isDark />
+            <VertoRideLogo inverted />
           </div>
         </div>
 
@@ -309,11 +330,22 @@ export const AuthPage: React.FC = () => {
 
             {/* Error Message Box */}
             {(error || validationError) && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <div className="flex-1 font-medium leading-relaxed">
                   {validationError || error}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setValidationError(null);
+                    clearError();
+                  }}
+                  className="text-rose-500 hover:text-rose-800 p-0.5 rounded-lg cursor-pointer"
+                  title="Dismiss message"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             )}
 
@@ -602,6 +634,119 @@ export const AuthPage: React.FC = () => {
                         {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                {/* Optional Profile Photo / Initials Option */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">Profile Picture (Optional)</span>
+                      <span className="text-[11px] text-slate-500">Upload a custom photo or use your name initials</span>
+                    </div>
+                    <span className="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                      Optional
+                    </span>
+                  </div>
+
+                  {/* Photo Mode Toggle */}
+                  <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-200/60 rounded-xl text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoOption('initials');
+                        handleRemovePhoto();
+                      }}
+                      className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                        photoOption === 'initials' && !signUpData.avatar
+                          ? 'bg-white text-indigo-700 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Use Name Initials
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPhotoOption('upload');
+                        fileInputRef.current?.click();
+                      }}
+                      className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        photoOption === 'upload' || !!signUpData.avatar
+                          ? 'bg-white text-indigo-700 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>Upload Photo</span>
+                    </button>
+                  </div>
+
+                  {/* Hidden File Input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoUpload}
+                    accept="image/png, image/jpeg, image/jpg, image/webp"
+                    className="hidden"
+                    id="signup-photo-upload-input"
+                  />
+
+                  {/* Visual Preview Box */}
+                  <div className="flex items-center gap-3.5 p-2.5 bg-white rounded-xl border border-slate-200">
+                    <UserAvatar
+                      name={signUpData.name || 'Verto Student'}
+                      avatar={signUpData.avatar}
+                      size="lg"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      {signUpData.avatar ? (
+                        <div className="space-y-1">
+                          <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Custom Photo Selected
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                            >
+                              Change photo
+                            </button>
+                            <span className="text-slate-300">•</span>
+                            <button
+                              type="button"
+                              onClick={handleRemovePhoto}
+                              className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 underline cursor-pointer"
+                            >
+                              Remove (Use initials)
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 block">
+                            Initials Badge: <span className="text-indigo-600 font-mono font-black">{getInitials(signUpData.name || 'Verto Student')}</span>
+                          </span>
+                          <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                            Displays first letter of first & last name. You can also upload a photo later from your profile.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {!signUpData.avatar && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2 rounded-xl text-indigo-600 hover:bg-indigo-50 border border-indigo-200 transition-colors cursor-pointer shrink-0"
+                        title="Choose photo file"
+                      >
+                        <Upload className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

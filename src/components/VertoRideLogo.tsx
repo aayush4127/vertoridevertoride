@@ -171,17 +171,14 @@ interface VertoRideLogoProps {
   className?: string;
   showSubtitle?: boolean;
   inverted?: boolean;
-  isDark?: boolean;
 }
 
 export const VertoRideLogo: React.FC<VertoRideLogoProps> = ({
   size = 36,
   className = '',
   showSubtitle = true,
-  inverted = false,
-  isDark = false
+  inverted = false
 }) => {
-  const isNight = inverted || isDark;
   return (
     <div className={`flex items-center gap-2.5 select-none ${className}`}>
       {/* Dynamic V-Road-Car Mark */}
@@ -195,12 +192,12 @@ export const VertoRideLogo: React.FC<VertoRideLogoProps> = ({
           <span
             className={`font-black tracking-tight ${
               size >= 40 ? 'text-2xl sm:text-3xl' : 'text-lg sm:text-xl'
-            } ${isNight ? 'text-white' : 'text-slate-900 dark:text-white'}`}
+            } ${inverted ? 'text-white' : 'text-slate-900'}`}
           >
-            VERTO<span className="text-indigo-600 dark:text-indigo-400 font-extrabold">RIDE</span>
+            VERTO<span className="text-indigo-600 font-extrabold">RIDE</span>
           </span>
 
-          <span className="inline-block text-[9px] sm:text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800 shadow-2xs">
+          <span className="inline-block text-[9px] sm:text-[10px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
             LPU Campus
           </span>
         </div>
@@ -208,7 +205,7 @@ export const VertoRideLogo: React.FC<VertoRideLogoProps> = ({
         {showSubtitle && (
           <p
             className={`text-[10px] sm:text-[11px] font-medium tracking-normal mt-1 ${
-              isNight ? 'text-slate-400' : 'text-slate-500 dark:text-slate-400'
+              inverted ? 'text-slate-400' : 'text-slate-500'
             }`}
           >
             LPU Student Carpooling & Campus Ride Pool

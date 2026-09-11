@@ -5,7 +5,6 @@ import {
   INITIAL_USER_BOOKINGS 
 } from './data/lpuData';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
 import { AuthPage } from './components/AuthPage';
 import { Navbar } from './components/Navbar';
 
@@ -132,7 +131,7 @@ function AuthenticatedApp({ currentUser, onSignOut, onUpdateUser }: Authenticate
   const myActiveBookingsCount = bookings.filter((b) => b.status === 'upcoming').length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
       
       {/* Top Universal Navbar */}
       <Navbar
@@ -295,10 +294,8 @@ function AppContent() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

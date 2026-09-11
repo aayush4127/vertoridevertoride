@@ -23,7 +23,7 @@ export interface StudentProfile {
   regNumber: string; // e.g. "12115892"
   course: string; // e.g. "B.Tech CSE"
   batch: string; // e.g. "2022-2026"
-  avatar: string;
+  avatar?: string;
   phone: string;
   email: string;
   rating: number;
@@ -43,6 +43,7 @@ export interface SignUpPayload {
   phone: string;
   gender: 'Male' | 'Female' | 'Other';
   blockOrHostel?: string;
+  avatar?: string;
 }
 
 export type AuthUser = StudentProfile;
