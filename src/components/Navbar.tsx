@@ -173,24 +173,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Mobile & Tablet menu controls: VertoPay, Create Ride, Hamburger */}
+          {/* Mobile & Tablet menu controls: VertoPay & Menu Toggle */}
           <div className="flex items-center gap-2 xl:hidden shrink-0 ml-auto">
             <VertoPayWidget variant="topbar-pill" />
 
             <button
-              id="mobile-create-ride-icon-btn"
-              onClick={onOpenCreateRide}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
-              title="Create Ride"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Offer Ride</span>
-            </button>
-
-            <button
               id="mobile-menu-toggle-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 focus:outline-hidden transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 focus:outline-hidden transition-colors cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -209,14 +199,28 @@ export const Navbar: React.FC<NavbarProps> = ({
             <VertoPayWidget variant="compact" />
           </div>
 
-          <div className="space-y-1">
+          {/* Quick Create / Offer Ride button in mobile menu */}
+          <button
+            id="mobile-drawer-create-ride-btn"
+            onClick={() => {
+              onOpenCreateRide();
+              setIsMobileMenuOpen(false);
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white py-2.5 rounded-xl font-bold text-sm shadow-sm transition-colors cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Create / Offer a Ride</span>
+          </button>
+
+          <div className="space-y-1 pt-1">
             {navItems.map((item) => {
               const isActive = currentTab === item.id;
               return (
                 <button
                   key={item.id}
+                  id={`mobile-nav-link-${item.id}`}
                   onClick={() => handleNavClick(item.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                     isActive
                       ? 'text-indigo-700 bg-indigo-50 font-bold'
                       : 'text-slate-700 hover:bg-slate-100'
@@ -246,21 +250,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </div>
 
-          <div className="pt-3 mt-2 border-t border-slate-100 flex flex-col gap-2.5">
-            <button
-              onClick={() => {
-                onOpenCreateRide();
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-md"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Create / Offer a Ride</span>
-            </button>
-
+          <div className="pt-2 mt-2 border-t border-slate-100">
             {currentUser && (
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleNavClick('profile')}
+                  className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-80 transition-opacity cursor-pointer"
+                  title="View Profile"
+                >
                   <UserAvatar
                     name={currentUser.name}
                     avatar={currentUser.avatar}
@@ -274,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       {currentUser.regNumber} • {currentUser.blockOrHostel || 'Hostel'}
                     </span>
                   </div>
-                </div>
+                </button>
 
                 {onSignOut && (
                   <button
@@ -283,7 +281,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setIsMobileMenuOpen(false);
                       onSignOut();
                     }}
-                    className="p-2 rounded-xl text-rose-600 hover:bg-rose-100 bg-rose-50 border border-rose-200 text-xs font-bold shrink-0 flex items-center gap-1"
+                    className="p-2 rounded-xl text-rose-600 hover:bg-rose-100 bg-rose-50 border border-rose-200 text-xs font-bold shrink-0 flex items-center gap-1 cursor-pointer"
                     title="Sign Out"
                   >
                     <LogOut className="w-3.5 h-3.5" />
