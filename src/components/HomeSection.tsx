@@ -4,6 +4,7 @@ import { LPU_LOCATIONS, POPULAR_DESTINATIONS } from '../data/lpuData';
 import { HostelSelector } from './HostelSelector';
 import { CampusRidePolicyDetail } from './CampusRidePolicyDetail';
 import { VertoRideIcon } from './VertoRideLogo';
+import { VertoPayWidget } from './VertoPayWidget';
 import { 
   MapPin, 
   Navigation, 
@@ -376,6 +377,11 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
               </div>
 
             </form>
+          </div>
+
+          {/* VertoPay Live Balance & Quick Recharge Banner (Below Booking Options) */}
+          <div className="mt-6 max-w-4xl mx-auto">
+            <VertoPayWidget variant="dashboard-banner" />
           </div>
 
           {/* Quick Stats Banner */}

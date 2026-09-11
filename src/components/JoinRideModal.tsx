@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Ride, MyBooking, StudentProfile } from '../types';
+import { useWallet } from '../context/WalletContext';
 import { 
   X, 
   Car, 
@@ -10,7 +11,12 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Wallet,
+  PlusCircle,
+  AlertTriangle,
+  Zap,
+  Ticket
 } from 'lucide-react';
 
 interface JoinRideModalProps {
@@ -28,15 +34,34 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
 }) => {
   if (!ride) return null;
 
+  const { balance, deductFare, openRechargeModal, triggerNeonWarningToast } = useWallet();
   const [seatsToBook, setSeatsToBook] = useState<number>(1);
   const [pickupNote, setPickupNote] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [insufficientError, setInsufficientError] = useState<boolean>(false);
 
-  const totalPrice = ride.pricePerSeat * seatsToBook;
+  // Exact standard campus pool seat pass fare
+  const fareToDeduct = 15;
   const boardingOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. FARE DEDUCTION & BALANCE CHECK LOGIC
+    // Check if balance is less than 15 or less than 10
+    if (balance < fareToDeduct || balance < 10) {
+      setInsufficientError(true);
+      // Trigger vibrant floating neon-red warning toast as requested
+      triggerNeonWarningToast('Insufficient Balance in VertoPay! Please top up via UPI.');
+      return;
+    }
+
+    // Deduct exactly ₹15 from localStorage wallet balance
+    const deductionResult = deductFare(fareToDeduct, `Campus Pool: ${ride.pickup.name} to ${ride.destination.name}`);
+    if (!deductionResult.success) {
+      setInsufficientError(true);
+      return;
+    }
 
     const newBooking: MyBooking = {
       id: `booking-${Date.now()}`,
@@ -47,7 +72,7 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
         availableSeats: Math.max(0, ride.availableSeats - seatsToBook)
       },
       seatsBooked: seatsToBook,
-      totalPrice: totalPrice,
+      totalPrice: fareToDeduct,
       bookedAt: 'Just now',
       status: 'active',
       boardingOtp: boardingOtp,
@@ -58,32 +83,82 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
       ]
     };
 
+    setInsufficientError(false);
     setIsSuccess(true);
+
     setTimeout(() => {
       onConfirmBooking(newBooking);
-    }, 1200);
+    }, 1800);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 relative">
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 relative border border-slate-100">
         
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+          className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
 
         {isSuccess ? (
-          <div className="py-8 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto animate-bounce">
-              <CheckCircle2 className="w-9 h-9" />
+          /* UNLOCKED DIGITAL TICKET & SUCCESS SCREEN */
+          <div className="py-4 text-center space-y-5 animate-in fade-in">
+            <div className="relative mx-auto w-16 h-16">
+              <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-lg animate-pulse" />
+              <div className="relative w-16 h-16 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/40">
+                <CheckCircle2 className="w-9 h-9" />
+              </div>
             </div>
-            <h3 className="text-2xl font-extrabold text-slate-900">Ride Joined Successfully!</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Your seat has been reserved with <strong>{ride.driver.name}</strong>. Your boarding OTP is <span className="font-mono font-bold text-indigo-600 text-sm">{boardingOtp}</span>. Redirecting to My Rides...
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                Digital Pass Unlocked
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 pt-1">
+                Seat Confirmed & Paid!
+              </h3>
+              <p className="text-xs text-slate-500">
+                ₹15 deducted from VertoPay. Your digital boarding pass is ready.
+              </p>
+            </div>
+
+            {/* Digital Ticket Card */}
+            <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-5 rounded-2xl border border-indigo-500/30 shadow-xl text-left space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-indigo-800/80 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-black tracking-wide text-white uppercase">VertoRide Digital Pass</span>
+                </div>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Paid ₹15 via VertoPay
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Driver</span>
+                  <span className="font-bold text-white text-sm">{ride.driver.name}</span>
+                  <span className="text-[11px] text-indigo-300 block">{ride.vehicleType}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Boarding OTP</span>
+                  <span className="text-2xl font-black font-mono text-emerald-400 tracking-wider">
+                    {boardingOtp}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-indigo-800/80 flex items-center justify-between text-[11px] text-slate-300">
+                <span className="truncate max-w-[200px]">{ride.pickup.name} → {ride.destination.name}</span>
+                <span className="font-semibold text-emerald-300">Departure: {ride.departureTime}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400">
+              Redirecting to your active rides tab...
             </p>
           </div>
         ) : (
@@ -92,7 +167,7 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-indigo-600 mb-1">
                 <Car className="w-3.5 h-3.5" />
-                <span>Confirm Ride Booking</span>
+                <span>Confirm Ride Booking & VertoPay Pass</span>
               </div>
               <h2 className="text-2xl font-extrabold text-slate-900">
                 Join {ride.driver.name}'s Ride
@@ -182,23 +257,63 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
                 />
               </div>
 
-              {/* Price calculation breakdown */}
-              <div className="bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100 space-y-1.5">
+              {/* VertoPay Wallet Payment Breakdown & Balance Check */}
+              <div className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
+                balance < fareToDeduct
+                  ? 'bg-rose-50/80 border-rose-200'
+                  : 'bg-indigo-50/80 border-indigo-100'
+              }`}>
+                <div className="flex items-center justify-between pb-2 border-b border-indigo-200/50">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
+                      <Wallet className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-slate-900 block leading-tight">VertoPay Digital Wallet</span>
+                      <span className="text-[10px] text-slate-500">Live Campus Pass Balance</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs text-slate-500 block">Current Balance</span>
+                    <span className={`text-sm font-black font-mono ${
+                      balance < fareToDeduct ? 'text-rose-600' : 'text-emerald-600'
+                    }`}>
+                      ₹{balance}
+                    </span>
+                  </div>
+                </div>
+
                 <div className="flex justify-between text-slate-600">
-                  <span>Fare per seat:</span>
-                  <span className="font-bold text-slate-800">₹{ride.pricePerSeat}</span>
+                  <span>Fare to Deduct:</span>
+                  <span className="font-black text-slate-900 text-sm">₹{fareToDeduct}</span>
                 </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Seats:</span>
-                  <span className="font-bold text-slate-800">× {seatsToBook}</span>
-                </div>
-                <div className="flex justify-between text-sm font-extrabold text-indigo-900 pt-2 border-t border-indigo-200/60">
-                  <span>Total Payable to Driver:</span>
-                  <span className="text-base text-indigo-700">₹{totalPrice}</span>
-                </div>
-                <p className="text-[10px] text-slate-500 pt-1">
-                  Pay the driver directly via UPI (Google Pay/Paytm/PhonePe) or cash when boarding. Zero platform fee!
-                </p>
+
+                {balance < fareToDeduct ? (
+                  <div className="pt-2 border-t border-rose-200 space-y-2">
+                    <div className="flex items-start gap-2 text-rose-800 text-[11px] font-semibold">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <span>
+                        Insufficient balance in VertoPay (₹{balance}). ₹15 minimum required to unlock ticket.
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      id="modal-recharge-wallet-btn"
+                      onClick={() => openRechargeModal(50)}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-700 hover:to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <PlusCircle className="w-3.5 h-3.5" />
+                      <span>Recharge VertoPay via Mock UPI Now (+₹50)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 pt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Sufficient VertoPay balance. ₹15 will be deducted upon confirmation.</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -206,16 +321,20 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="px-4 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   id="confirm-join-ride-btn"
-                  className="px-6 py-2.5 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 cursor-pointer"
+                  className={`px-6 py-2.5 rounded-xl font-extrabold text-white transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-98 ${
+                    balance < fareToDeduct
+                      ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                      : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                  }`}
                 >
-                  <span>Confirm & Reserve Seat</span>
+                  <span>{balance < fareToDeduct ? 'Pay & Book Seat (Top Up First)' : 'Confirm & Deduct ₹15'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -228,3 +347,4 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
     </div>
   );
 };
+

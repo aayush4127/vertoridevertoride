@@ -5,6 +5,7 @@ import {
   INITIAL_USER_BOOKINGS 
 } from './data/lpuData';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { WalletProvider, useWallet } from './context/WalletContext';
 import { AuthPage } from './components/AuthPage';
 import { Navbar } from './components/Navbar';
 
@@ -17,6 +18,8 @@ import { ProfileSection } from './components/ProfileSection';
 import { JoinRideModal } from './components/JoinRideModal';
 import { CreateRideModal } from './components/CreateRideModal';
 import { TrackRideModal } from './components/TrackRideModal';
+import { VertoPayRechargeModal } from './components/VertoPayRechargeModal';
+import { VertoPayToasts } from './components/VertoPayToasts';
 import { Footer } from './components/Footer';
 
 // Inner component with authenticated user context
@@ -27,6 +30,7 @@ interface AuthenticatedAppProps {
 }
 
 function AuthenticatedApp({ currentUser, onSignOut, onUpdateUser }: AuthenticatedAppProps) {
+  const { isRechargeModalOpen, closeRechargeModal, rechargePresetAmount } = useWallet();
   const [currentTab, setCurrentTab] = useState<PageTab>('home');
   const [rides, setRides] = useState<Ride[]>(INITIAL_AVAILABLE_RIDES);
   const [bookings, setBookings] = useState<MyBooking[]>(INITIAL_USER_BOOKINGS);
@@ -255,6 +259,14 @@ function AuthenticatedApp({ currentUser, onSignOut, onUpdateUser }: Authenticate
         />
       )}
 
+      {/* VertoPay Recharge Modal & Floating Toasts */}
+      <VertoPayRechargeModal
+        isOpen={isRechargeModalOpen}
+        onClose={closeRechargeModal}
+        presetAmount={rechargePresetAmount}
+      />
+      <VertoPayToasts />
+
       {/* Footer */}
       <Footer onNavigate={setCurrentTab} />
 
@@ -295,7 +307,9 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <WalletProvider>
+        <AppContent />
+      </WalletProvider>
     </AuthProvider>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { PageTab, StudentProfile } from '../types';
 import { VertoRideLogo } from './VertoRideLogo';
 import { UserAvatar } from './UserAvatar';
+import { VertoPayWidget } from './VertoPayWidget';
 import { 
   Car, 
   MapPin, 
@@ -120,8 +121,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* Right Action: Create Ride Button & Profile */}
+          {/* Right Action: VertoPay Widget, Create Ride Button & Profile */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0">
+            {/* VertoPay Topbar Widget with Balance & Recharge */}
+            <VertoPayWidget variant="topbar-pill" />
+
             <button
               id="header-create-ride-btn"
               onClick={onOpenCreateRide}
@@ -169,8 +173,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Mobile menu controls: Create Ride, Hamburger */}
+          {/* Mobile menu controls: VertoPay, Create Ride, Hamburger */}
           <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden shrink-0">
+            <VertoPayWidget variant="topbar-pill" className="scale-90 origin-right" />
+
             <button
               id="mobile-create-ride-icon-btn"
               onClick={onOpenCreateRide}
@@ -195,7 +201,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2 shadow-lg animate-in slide-in-from-top-2">
+        <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2">
+          
+          {/* Mobile VertoPay Widget */}
+          <div className="pb-1">
+            <VertoPayWidget variant="compact" />
+          </div>
+
           <div className="space-y-1">
             {navItems.map((item) => {
               const isActive = currentTab === item.id;

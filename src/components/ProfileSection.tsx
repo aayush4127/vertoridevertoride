@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StudentProfile } from '../types';
 import { UserAvatar } from './UserAvatar';
+import { VertoPayWidget } from './VertoPayWidget';
 import { getInitials } from '../utils/avatarUtils';
 import { 
   User, 
@@ -341,6 +342,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           </div>
         </div>
 
+      </div>
+
+      {/* VertoPay Digital Wallet Banner */}
+      <div>
+        <VertoPayWidget variant="dashboard-banner" />
       </div>
 
       {/* Ride History Stats (4 Cards) */}

@@ -3,6 +3,7 @@ import { Ride, CampusLocation } from '../types';
 import { LPU_LOCATIONS } from '../data/lpuData';
 import { HostelSelector } from './HostelSelector';
 import { CampusRidePolicyDetail } from './CampusRidePolicyDetail';
+import { VertoPayWidget } from './VertoPayWidget';
 import { 
   Search, 
   Filter, 
@@ -160,10 +161,12 @@ export const AvailableRidesSection: React.FC<AvailableRidesSectionProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <VertoPayWidget variant="topbar-pill" />
+          
           <button
             onClick={onOpenCreateRide}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 cursor-pointer whitespace-nowrap"
           >
             <span>+ Create Ride</span>
           </button>
