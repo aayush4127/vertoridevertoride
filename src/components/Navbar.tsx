@@ -85,7 +85,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink min-w-0">
+          <nav className="hidden xl:flex items-center gap-1 2xl:gap-1.5 shrink-0 mx-2">
             {navItems.map((item) => {
               const isActive = currentTab === item.id;
               return (
@@ -93,9 +93,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={item.id}
                   id={`nav-link-${item.id}`}
                   onClick={() => handleNavClick(item.id)}
-                  className={`relative flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3.5 py-1.5 xl:py-2 rounded-lg text-xs xl:text-sm font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 2xl:px-3.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                     isActive
-                      ? 'text-indigo-700 bg-indigo-50/90 border border-transparent shadow-xs'
+                      ? 'text-indigo-700 bg-indigo-50/90 border border-indigo-100/50 shadow-xs'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
                   }`}
                 >
@@ -112,7 +112,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   )}
 
                   {item.badge !== undefined && item.badge > 0 && (
-                    <span className="ml-0.5 xl:ml-1 text-[10px] xl:text-[11px] px-1.5 py-0.2 rounded-full font-bold bg-indigo-600 text-white">
+                    <span className="ml-1 text-[10px] 2xl:text-[11px] px-1.5 py-0.2 rounded-full font-bold bg-indigo-600 text-white">
                       {item.badge}
                     </span>
                   )}
@@ -122,25 +122,25 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Right Action: VertoPay Widget, Create Ride Button & Profile */}
-          <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0">
+          <div className="hidden xl:flex items-center gap-2.5 2xl:gap-3 shrink-0 ml-auto">
             {/* VertoPay Topbar Widget with Balance & Recharge */}
             <VertoPayWidget variant="topbar-pill" />
 
             <button
               id="header-create-ride-btn"
               onClick={onOpenCreateRide}
-              className="flex items-center gap-1.5 xl:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs xl:text-sm font-bold px-3 xl:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
+              className="flex items-center gap-1.5 2xl:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs 2xl:text-sm font-bold px-3.5 2xl:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
             >
-              <PlusCircle className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+              <PlusCircle className="w-4 h-4" />
               <span>Create Ride</span>
             </button>
 
             {/* Quick Profile Pill & Sign Out */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200/80">
               <button
                 id="header-profile-quick-pill"
                 onClick={() => handleNavClick('profile')}
-                className="flex items-center gap-2 pl-1.5 pr-2.5 xl:pl-2 xl:pr-3 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-slate-50 transition-all cursor-pointer text-left shrink-0"
+                className="flex items-center gap-2 pl-1.5 pr-2.5 2xl:pl-2 2xl:pr-3 py-1.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-slate-50 transition-all cursor-pointer text-left shrink-0"
                 title="View Student Profile"
               >
                 <UserAvatar
@@ -173,26 +173,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Mobile menu controls: VertoPay, Create Ride, Hamburger */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:hidden shrink-0">
-            <VertoPayWidget variant="topbar-pill" className="scale-90 origin-right" />
+          {/* Mobile & Tablet menu controls: VertoPay, Create Ride, Hamburger */}
+          <div className="flex items-center gap-2 xl:hidden shrink-0 ml-auto">
+            <VertoPayWidget variant="topbar-pill" />
 
             <button
               id="mobile-create-ride-icon-btn"
               onClick={onOpenCreateRide}
-              className="p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
               title="Create Ride"
             >
-              <PlusCircle className="w-5 h-5" />
+              <PlusCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Offer Ride</span>
             </button>
 
             <button
               id="mobile-menu-toggle-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-hidden"
+              className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 focus:outline-hidden transition-colors cursor-pointer"
               aria-label="Toggle navigation menu"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
@@ -201,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2">
+        <div className="xl:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg animate-in slide-in-from-top-2">
           
           {/* Mobile VertoPay Widget */}
           <div className="pb-1">
