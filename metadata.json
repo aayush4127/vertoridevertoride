@@ -1,0 +1,8 @@
+{
+  "name": "VERTORIDE",
+  "description": "LPU campus student ride-sharing platform exclusively within Lovely Professional University to share rides, split costs, and travel between campus gates, academic blocks, and hostel blocks (BH-1 to BH-13 & GH-1 to GH-13).",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
