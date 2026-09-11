@@ -248,14 +248,23 @@ export async function updateStoredUserProfile(updates: Partial<StudentProfile>):
     ...updates
   };
 
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  try {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+  } catch (storageErr) {
+    console.error('Failed to update session storage', storageErr);
+    throw new Error('Storage limit reached. Please select a smaller photo.');
+  }
 
   // Update in accounts store as well
-  const accounts = getStoredAccounts();
-  const emailKey = current.email.toLowerCase();
-  if (accounts[emailKey]) {
-    accounts[emailKey].profile = updated;
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
+  try {
+    const accounts = getStoredAccounts();
+    const emailKey = current.email.toLowerCase();
+    if (accounts[emailKey]) {
+      accounts[emailKey].profile = updated;
+      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
+    }
+  } catch (accountsErr) {
+    console.warn('Could not update all account backups', accountsErr);
   }
 
   return updated;

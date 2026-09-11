@@ -57,3 +57,60 @@ export function getAvatarColorClasses(name?: string): { bg: string; text: string
   const index = Math.abs(hash) % palettes.length;
   return palettes[index];
 }
+
+/**
+ * Compresses and center-crops an uploaded image file into an optimized square avatar data URL
+ * Prevents localStorage quota exceeded errors by keeping image size under 30KB.
+ */
+export function compressProfileImage(file: File, maxDimension = 320, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file'));
+    reader.onload = (event) => {
+      const srcData = event.target?.result as string;
+      if (!srcData) {
+        reject(new Error('Empty image result'));
+        return;
+      }
+
+      const img = new Image();
+      img.onerror = () => reject(new Error('Invalid image data'));
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const width = img.width;
+          const height = img.height;
+
+          // Find centered square crop
+          const cropSize = Math.min(width, height);
+          const startX = (width - cropSize) / 2;
+          const startY = (height - cropSize) / 2;
+
+          const targetSize = Math.min(cropSize, maxDimension);
+          canvas.width = targetSize;
+          canvas.height = targetSize;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(srcData);
+            return;
+          }
+
+          // Smooth rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          ctx.drawImage(img, startX, startY, cropSize, cropSize, 0, 0, targetSize, targetSize);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedDataUrl);
+        } catch (err) {
+          // Fallback if canvas manipulation fails
+          resolve(srcData);
+        }
+      };
+      img.src = srcData;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+

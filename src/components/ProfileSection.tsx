@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StudentProfile } from '../types';
 import { UserAvatar } from './UserAvatar';
 import { VertoPayWidget } from './VertoPayWidget';
-import { getInitials } from '../utils/avatarUtils';
+import { getInitials, compressProfileImage } from '../utils/avatarUtils';
 import { 
   User, 
   ShieldCheck, 
@@ -24,12 +24,13 @@ import {
   Camera,
   Upload,
   Trash2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 
 interface ProfileSectionProps {
   user: StudentProfile;
-  onUpdateUser: (updated: StudentProfile) => void;
+  onUpdateUser: (updated: StudentProfile) => Promise<void> | void;
   onSignOut?: () => void;
 }
 
@@ -41,49 +42,77 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formData, setFormData] = useState<StudentProfile>(user);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFormData(user);
   }, [user]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setPhotoError('Please select a valid image file (PNG, JPG, WebP).');
+      setPhotoError('Please select a valid image file (PNG, JPG, JPEG, WebP).');
       return;
     }
 
-    if (file.size > 4 * 1024 * 1024) {
-      setPhotoError('Image size must be less than 4MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      setPhotoError('Image file is too large. Please choose an image under 8MB.');
       return;
     }
 
     setPhotoError(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setFormData((prev) => ({ ...prev, avatar: result }));
+    setIsProcessingPhoto(true);
+
+    try {
+      // Compress and optimize image to avoid localStorage quota issues
+      const compressedAvatar = await compressProfileImage(file, 320, 0.85);
+
+      setFormData((prev) => ({ ...prev, avatar: compressedAvatar }));
+
+      // If not in the middle of editing other text fields, immediately apply the photo change
+      if (!isEditing) {
+        await onUpdateUser({
+          ...user,
+          avatar: compressedAvatar
+        });
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.error('Failed to process image', err);
+      setPhotoError(err?.message || 'Failed to process image. Please try another photo.');
+    } finally {
+      setIsProcessingPhoto(false);
+      // Reset input value so same file can be re-selected if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
-  const handleRemovePhoto = () => {
+  const handleRemovePhoto = async () => {
     setPhotoError(null);
     setFormData((prev) => ({ ...prev, avatar: '' }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+    if (!isEditing) {
+      await onUpdateUser({
+        ...user,
+        avatar: ''
+      });
+    }
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateUser(formData);
-    setIsEditing(false);
+    try {
+      await onUpdateUser(formData);
+      setIsEditing(false);
+    } catch (err: any) {
+      setPhotoError(err?.message || 'Failed to save changes');
+    }
   };
 
   const sampleReviews = [
@@ -109,6 +138,15 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Hidden Universal File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handlePhotoUpload}
+        accept="image/png, image/jpeg, image/jpg, image/webp"
+        className="hidden"
+        id="profile-photo-file-input"
+      />
       
       {/* Top Profile Card */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
@@ -129,18 +167,22 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 isVerified={user.verifiedStudent}
               />
               
-              {/* Quick edit photo trigger on hover */}
+              {/* Quick edit photo trigger on hover or click */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsEditing(true);
-                  setTimeout(() => fileInputRef.current?.click(), 100);
-                }}
-                className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
+                disabled={isProcessingPhoto}
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer disabled:cursor-not-allowed"
                 title="Change or upload profile photo"
               >
-                <Camera className="w-5 h-5 mb-0.5" />
-                <span className="text-[10px] font-bold">Edit Photo</span>
+                {isProcessingPhoto ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-5 h-5 mb-0.5" />
+                    <span className="text-[10px] font-bold">Edit Photo</span>
+                  </>
+                )}
               </button>
             </div>
 
@@ -166,6 +208,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 <span>•</span>
                 <span>{user.blockOrHostel}</span>
               </div>
+
+              {photoError && !isEditing && (
+                <p className="text-xs text-rose-600 font-medium pt-1">{photoError}</p>
+              )}
             </div>
           </div>
 
@@ -203,21 +249,17 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
 
                 <div className="space-y-1.5 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handlePhotoUpload}
-                      accept="image/png, image/jpeg, image/jpg, image/webp"
-                      className="hidden"
-                      id="profile-photo-file-input"
-                    />
-
                     <button
                       type="button"
+                      disabled={isProcessingPhoto}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 text-xs transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 text-xs transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      {isProcessingPhoto ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
                       <span>{formData.avatar ? 'Change Photo' : 'Upload Student Photo'}</span>
                     </button>
 

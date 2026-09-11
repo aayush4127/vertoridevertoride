@@ -32,6 +32,7 @@ export interface StudentProfile {
   verifiedStudent: boolean;
   blockOrHostel?: string;
   gender?: 'Male' | 'Female' | 'Other';
+  walletBalance?: number;
 }
 
 export interface SignUpPayload {

@@ -22,6 +22,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   shape = 'circle'
 }) => {
   const [imageError, setImageError] = useState(false);
+
+  React.useEffect(() => {
+    setImageError(false);
+  }, [avatar]);
+
   const initials = getInitials(name);
   const palette = getAvatarColorClasses(name);
 
