@@ -199,14 +199,14 @@ export const MyRidesSection: React.FC<MyRidesSectionProps> = ({
                 <span className="text-slate-300">Est. Arrival:</span>
                 <span className="font-bold text-emerald-300 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  {activeBookings[0].ride.estimatedArrival}
+                  {activeBookings[0].ride.estimatedArrival || '10 mins'}
                 </span>
               </div>
 
               <div className="text-xs text-slate-300">
                 <span>Stops: </span>
                 <span className="text-slate-400 text-[11px]">
-                  {activeBookings[0].ride.routeStops.join(' → ')}
+                  {activeBookings[0].ride.routeStops?.join(' → ') || 'Direct Campus Route'}
                 </span>
               </div>
             </div>

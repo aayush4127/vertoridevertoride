@@ -150,6 +150,19 @@ export class FirebaseService {
   }
 
   /**
+   * Listen to all ride requests/history for a user (passenger or driver)
+   */
+  public static listenToUserRideHistory(userId: string, isDriver: boolean, callback: (requests: RideRequest[]) => void): () => void {
+    const field = isDriver ? 'driverId' : 'passengerId';
+    const q = query(collection(db, 'rideRequests'), where(field, '==', userId));
+    return onSnapshot(q, (snap) => {
+      const reqs = snap.docs.map(d => d.data() as RideRequest)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      callback(reqs);
+    });
+  }
+
+  /**
    * Listen to available waiting requests for drivers
    */
   public static listenToAvailableRequests(driverId: string, callback: (requests: RideRequest[]) => void): () => void {

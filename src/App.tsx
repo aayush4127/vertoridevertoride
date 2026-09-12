@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageTab, Ride, MyBooking, StudentProfile } from './types';
 import { 
   INITIAL_AVAILABLE_RIDES, 
@@ -23,6 +23,7 @@ import { TrackRideModal } from './components/TrackRideModal';
 import { VertoPayRechargeModal } from './components/VertoPayRechargeModal';
 import { VertoPayToasts } from './components/VertoPayToasts';
 import { Footer } from './components/Footer';
+import { FirebaseService } from './services/firebaseService';
 
 // Inner component with authenticated user context
 interface AuthenticatedAppProps {
@@ -35,7 +36,66 @@ function AuthenticatedApp({ currentUser, onSignOut, onUpdateUser }: Authenticate
   const { isRechargeModalOpen, closeRechargeModal, rechargePresetAmount } = useWallet();
   const [currentTab, setCurrentTab] = useState<PageTab>('home');
   const [rides, setRides] = useState<Ride[]>(INITIAL_AVAILABLE_RIDES);
-  const [bookings, setBookings] = useState<MyBooking[]>(INITIAL_USER_BOOKINGS);
+  const [bookings, setBookings] = useState<MyBooking[]>([]);
+
+  // Sync real-time ride history from Firestore (Passenger or Driver)
+  useEffect(() => {
+    if (!currentUser?.id && !currentUser?.uid) return;
+    const userId = currentUser.uid || currentUser.id;
+    const isDriver = currentUser.accountType === 'driver';
+
+    const unsubscribe = FirebaseService.listenToUserRideHistory(userId, isDriver, (reqs) => {
+      const realBookings: MyBooking[] = reqs.map((req) => {
+        const isAccepted = req.status === 'accepted';
+        const isCompleted = req.status === 'completed';
+        const isCancelled = req.status === 'cancelled' || req.status === 'expired';
+
+        return {
+          id: req.id,
+          rideId: req.id,
+          ride: {
+            id: req.id,
+            driver: {
+              id: req.driverId || 'driver-id',
+              name: req.driverName || (isDriver ? currentUser.name : 'Waiting for Driver'),
+              email: 'driver@lpu.in',
+              course: 'Driver Partner',
+              phone: '+91 98765-43210',
+              gender: 'Other',
+              blockOrHostel: 'Campus Hub',
+              avatar: req.driverAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+              accountType: 'driver'
+            },
+            pickup: { id: req.pickupId, name: req.pickupName, x: 100, y: 100 },
+            destination: { id: req.destinationId, name: req.destinationName, x: 300, y: 300 },
+            vehicleType: 'Auto-Rickshaw',
+            vehicleNumber: 'PB08-AUTO-1234',
+            departureTime: new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            totalSeats: 1,
+            availableSeats: isAccepted ? 0 : 1,
+            occupiedSeats: isAccepted ? 1 : 0,
+            pricePerSeat: 10,
+            status: isAccepted ? 'active' : (isCompleted ? 'completed' : 'cancelled'),
+            currentLocationName: req.pickupName,
+            bookedByStudentIds: [req.passengerId],
+            routeStops: [req.pickupName, req.destinationName],
+            estimatedArrival: '10 mins'
+          },
+          seatsBooked: 1,
+          boardingOtp: '4892',
+          bookedAt: new Date(req.createdAt).toLocaleDateString(),
+          status: isAccepted ? 'active' : (isCompleted ? 'completed' : (isCancelled ? 'cancelled' : 'upcoming')),
+          totalPrice: 10
+        };
+      });
+
+      if (realBookings.length > 0) {
+        setBookings(realBookings);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   // Search presets from Home
   const [searchPresets, setSearchPresets] = useState<{
