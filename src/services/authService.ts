@@ -116,7 +116,8 @@ export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentPr
     moneySaved: 0,
     verifiedStudent: true,
     blockOrHostel: payload.blockOrHostel || (payload.gender === 'Female' ? 'GH-1' : 'BH-1'),
-    gender: payload.gender || 'Male'
+    gender: payload.gender || 'Male',
+    accountType: payload.accountType || 'passenger'
   };
 
   await setDoc(doc(db, 'users', user.uid), newProfile);

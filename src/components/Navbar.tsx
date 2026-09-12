@@ -49,13 +49,22 @@ export const Navbar: React.FC<NavbarProps> = ({
     return name.slice(0, 2).toUpperCase();
   };
 
-  const navItems: { id: PageTab; label: string; icon: React.ReactNode; badge?: number; isLive?: boolean }[] = [
-    { id: 'home', label: 'Home', icon: <Car className="w-4 h-4" /> },
-    { id: 'book', label: 'Book Ride', icon: <Search className="w-4 h-4" /> },
+  const navItemsRaw: { id: PageTab; label: string; icon: React.ReactNode; badge?: number; isLive?: boolean }[] = [
+    { id: 'home', label: 'Dashboard', icon: <Car className="w-4 h-4" /> },
+    { id: 'book', label: 'Find Rides', icon: <Search className="w-4 h-4" /> },
     { id: 'live', label: 'Auto Paths', icon: <Navigation className="w-4 h-4" />, badge: 5 },
     { id: 'find-students', label: 'Find Students', icon: <Users className="w-4 h-4" /> },
     { id: 'my-rides', label: 'My Rides', icon: <CalendarCheck className="w-4 h-4" />, badge: myActiveBookingsCount },
   ];
+
+  const isDriver = currentUser?.accountType === 'driver';
+  const isPassenger = !currentUser?.accountType || currentUser?.accountType === 'passenger';
+
+  const navItems = navItemsRaw.filter(item => {
+    if (isDriver && item.id === 'book') return false; // Drivers don't use old book tab
+    if (isPassenger && item.id === 'find-students') return false; // Passengers don't need to find other students to give rides
+    return true;
+  });
 
   const handleNavClick = (tab: PageTab) => {
     onSelectTab(tab);
@@ -126,14 +135,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* VertoPay Topbar Widget with Balance & Recharge */}
             <VertoPayWidget variant="topbar-pill" />
 
-            <button
-              id="header-create-ride-btn"
-              onClick={onOpenCreateRide}
-              className="flex items-center gap-1.5 2xl:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs 2xl:text-sm font-bold px-3.5 2xl:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Create Ride</span>
-            </button>
+            {isDriver && (
+              <button
+                id="header-create-ride-btn"
+                onClick={onOpenCreateRide}
+                className="flex items-center gap-1.5 2xl:gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs 2xl:text-sm font-bold px-3.5 2xl:px-4 py-2 rounded-xl transition-all shadow-md shadow-indigo-600/20 hover:shadow-indigo-600/30 cursor-pointer active:scale-98 shrink-0 whitespace-nowrap"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Create Ride</span>
+              </button>
+            )}
 
             {/* Quick Profile Pill & Sign Out */}
             <div className="flex items-center gap-1.5 pl-1 border-l border-slate-200/80">

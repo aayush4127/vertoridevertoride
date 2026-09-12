@@ -33,6 +33,7 @@ export interface StudentProfile {
   blockOrHostel?: string;
   gender?: 'Male' | 'Female' | 'Other';
   walletBalance?: number;
+  accountType?: 'passenger' | 'driver';
 }
 
 export interface SignUpPayload {
@@ -45,6 +46,29 @@ export interface SignUpPayload {
   gender: 'Male' | 'Female' | 'Other';
   blockOrHostel?: string;
   avatar?: string;
+  accountType: 'passenger' | 'driver';
+}
+
+export type RideRequestStatus = 'waiting' | 'accepted' | 'expired' | 'completed' | 'cancelled';
+
+export interface RideRequest {
+  id: string;
+  passengerId: string;
+  passengerName: string;
+  passengerAvatar?: string;
+  pickupId: string;
+  destinationId: string;
+  pickupName: string;
+  destinationName: string;
+  status: RideRequestStatus;
+  createdAt: number;
+  expiresAt: number;
+  acceptedAt?: number;
+  completedAt?: number;
+  driverId?: string;
+  driverName?: string;
+  driverAvatar?: string;
+  rejectedBy: string[]; // List of driverIds who rejected this request
 }
 
 export type AuthUser = StudentProfile;

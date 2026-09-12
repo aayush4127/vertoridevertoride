@@ -1,8 +1,171 @@
-import { doc, setDoc, getDoc, collection, getDocs, updateDoc, query, where, orderBy } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, updateDoc, query, where, orderBy, runTransaction, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { StudentProfile, Ride, MyBooking } from '../types';
+import { StudentProfile, Ride, MyBooking, RideRequest } from '../types';
 
 export class FirebaseService {
+  /**
+   * Create a new ride request
+   */
+  public static async createRideRequest(request: RideRequest): Promise<void> {
+    try {
+      const ref = doc(db, 'rideRequests', request.id);
+      await setDoc(ref, request);
+    } catch (error) {
+      console.error('[Firebase] Error creating ride request:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject ride request for a specific driver
+   */
+  public static async rejectRideRequest(requestId: string, driverId: string): Promise<void> {
+    try {
+      const ref = doc(db, 'rideRequests', requestId);
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(ref);
+        if (!snap.exists()) throw new Error('Ride request does not exist!');
+        
+        const data = snap.data() as RideRequest;
+        const rejectedBy = data.rejectedBy || [];
+        if (!rejectedBy.includes(driverId)) {
+          rejectedBy.push(driverId);
+          transaction.update(ref, { rejectedBy });
+        }
+      });
+    } catch (error) {
+      console.error('[Firebase] Error rejecting ride:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Secure Atomic Ride Acceptance Transaction
+   * Deducts 10 from passenger, adds 10 to driver.
+   */
+  public static async acceptRideRequest(requestId: string, driver: StudentProfile): Promise<boolean> {
+    const rideRef = doc(db, 'rideRequests', requestId);
+    
+    try {
+      await runTransaction(db, async (transaction) => {
+        const rideSnap = await transaction.get(rideRef);
+        if (!rideSnap.exists()) throw new Error('Ride request not found');
+        
+        const rideData = rideSnap.data() as RideRequest;
+        
+        // Ensure ride is still waiting
+        if (rideData.status !== 'waiting') {
+          throw new Error('Ride is no longer available');
+        }
+
+        const passengerId = rideData.passengerId;
+        const passengerWalletRef = doc(db, 'wallets', passengerId);
+        const driverWalletRef = doc(db, 'wallets', driver.id || driver.uid || '');
+
+        const passWalletSnap = await transaction.get(passengerWalletRef);
+        const drvWalletSnap = await transaction.get(driverWalletRef);
+
+        const passBal = passWalletSnap.exists() ? passWalletSnap.data().balance : 0;
+        const drvBal = drvWalletSnap.exists() ? drvWalletSnap.data().balance : 0;
+
+        if (passBal < 10) {
+          throw new Error('Passenger has insufficient funds');
+        }
+
+        // Deduct from Passenger
+        const newPassBal = passBal - 10;
+        transaction.update(passengerWalletRef, { balance: newPassBal, updatedAt: new Date().toISOString() });
+        
+        // Add to Driver
+        const newDrvBal = drvBal + 10;
+        if (drvWalletSnap.exists()) {
+          transaction.update(driverWalletRef, { balance: newDrvBal, updatedAt: new Date().toISOString() });
+        } else {
+          transaction.set(driverWalletRef, { userId: driver.id || driver.uid || '', balance: newDrvBal, updatedAt: new Date().toISOString() });
+        }
+
+        // Create transaction logs
+        const txId = `tx-${Date.now()}`;
+        const passTxRef = doc(db, 'wallets', passengerId, 'transactions', `${txId}-pass`);
+        transaction.set(passTxRef, {
+          id: `${txId}-pass`,
+          type: 'debit',
+          amount: 10,
+          description: `Ride Payment to Driver: ${driver.name}`,
+          timestamp: new Date().toISOString(),
+          method: 'VertoPay Instant Auto Pass',
+          status: 'success',
+          referenceId: rideData.id,
+          userId: passengerId
+        });
+
+        const drvTxRef = doc(db, 'wallets', driver.id || driver.uid || '', 'transactions', `${txId}-drv`);
+        transaction.set(drvTxRef, {
+          id: `${txId}-drv`,
+          type: 'credit',
+          amount: 10,
+          description: `Ride Fare from Passenger: ${rideData.passengerName}`,
+          timestamp: new Date().toISOString(),
+          method: 'VertoPay Instant Auto Pass',
+          status: 'success',
+          referenceId: rideData.id,
+          userId: driver.id || driver.uid || ''
+        });
+
+        // Finally, update ride status
+        transaction.update(rideRef, {
+          status: 'accepted',
+          driverId: driver.id || driver.uid || '',
+          driverName: driver.name,
+          driverAvatar: driver.avatar || '',
+          acceptedAt: Date.now()
+        });
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('[Firebase] Transaction failed: ', error);
+      throw error;
+    }
+  }
+  /**
+   * Listen to active ride request for a passenger
+   */
+  public static listenToPassengerRequest(passengerId: string, callback: (request: RideRequest | null) => void): () => void {
+    const q = query(collection(db, 'rideRequests'), where('passengerId', '==', passengerId));
+    return onSnapshot(q, (snap) => {
+      // Find the most recent active request
+      const reqs = snap.docs.map(d => d.data() as RideRequest)
+        .sort((a, b) => b.createdAt - a.createdAt);
+      
+      const active = reqs.find(r => r.status === 'waiting' || r.status === 'accepted');
+      if (active) {
+        callback(active);
+      } else if (reqs.length > 0) {
+        callback(reqs[0]); // Return the most recent one (could be expired/completed)
+      } else {
+        callback(null);
+      }
+    });
+  }
+
+  /**
+   * Listen to available waiting requests for drivers
+   */
+  public static listenToAvailableRequests(driverId: string, callback: (requests: RideRequest[]) => void): () => void {
+    const q = query(collection(db, 'rideRequests'), where('status', '==', 'waiting'));
+    return onSnapshot(q, (snap) => {
+      const allRequests = snap.docs.map(d => d.data() as RideRequest);
+      const now = Date.now();
+      // Filter out expired ones immediately on the client (just in case they haven't been swept) and rejected ones
+      const available = allRequests.filter(r => 
+        r.expiresAt > now && 
+        !(r.rejectedBy && r.rejectedBy.includes(driverId))
+      );
+      callback(available);
+    });
+  }
+  
   /**
    * Sync or save user profile to Firestore
    */
@@ -76,6 +239,25 @@ export class FirebaseService {
     } catch (error) {
       console.warn('[Firebase] Error recording transaction:', error);
     }
+  }
+
+  /**
+   * Listen to wallet data in real-time
+   */
+  public static listenToWallet(userId: string, callback: (data: { balance: number; transactions: any[] }) => void): () => void {
+    const walletRef = doc(db, 'wallets', userId);
+    const txCol = collection(db, 'wallets', userId, 'transactions');
+    
+    return onSnapshot(walletRef, async (walletSnap) => {
+      try {
+        const txSnap = await getDocs(query(txCol, orderBy('timestamp', 'desc')));
+        const balance = walletSnap.exists() ? (walletSnap.data().balance ?? 0.0) : 0.0;
+        const transactions: any[] = txSnap.docs.map(d => d.data());
+        callback({ balance, transactions });
+      } catch (e) {
+        console.warn('[Firebase] Error in wallet snapshot:', e);
+      }
+    });
   }
 
   /**

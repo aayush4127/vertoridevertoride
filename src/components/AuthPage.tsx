@@ -51,7 +51,8 @@ export const AuthPage: React.FC = () => {
     password: '',
     confirmPassword: '',
     avatar: '',
-    agreeTerms: true
+    agreeTerms: true,
+    accountType: 'passenger' as 'passenger' | 'driver'
   });
 
   const [photoOption, setPhotoOption] = useState<'upload' | 'initials'>('initials');
@@ -199,7 +200,8 @@ export const AuthPage: React.FC = () => {
         phone: signUpData.phone || '+91 98000-00000',
         gender: signUpData.gender,
         blockOrHostel: signUpData.blockOrHostel,
-        avatar: signUpData.avatar || ''
+        avatar: signUpData.avatar || '',
+        accountType: signUpData.accountType
       });
     } catch (err: any) {
       // handled
@@ -459,6 +461,35 @@ export const AuthPage: React.FC = () => {
             {activeMode === 'signup' && (
               <form onSubmit={handleSignUpSubmit} className="space-y-4">
                 
+                {/* Account Type */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700">Account Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSignUpData({ ...signUpData, accountType: 'passenger' })}
+                      className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer text-center border ${
+                        signUpData.accountType === 'passenger'
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Passenger
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignUpData({ ...signUpData, accountType: 'driver' })}
+                      className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer text-center border ${
+                        signUpData.accountType === 'driver'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      Driver
+                    </button>
+                  </div>
+                </div>
+
                 {/* Full Name */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700">Full Name (as per LPU ID)</label>

@@ -10,6 +10,8 @@ import { AuthPage } from './components/AuthPage';
 import { Navbar } from './components/Navbar';
 
 import { HomeSection } from './components/HomeSection';
+import { PassengerDashboard } from './components/PassengerDashboard';
+import { DriverDashboard } from './components/DriverDashboard';
 import { AvailableRidesSection } from './components/AvailableRidesSection';
 import { LiveRidesMapSection } from './components/LiveRidesMapSection';
 import { FindStudentsSection } from './components/FindStudentsSection';
@@ -165,14 +167,16 @@ function AuthenticatedApp({ currentUser, onSignOut, onUpdateUser }: Authenticate
           </div>
         )}
 
-        {/* 1. Home Page */}
+        {/* 1. Home Page / Dashboard */}
         {currentTab === 'home' && (
-          <HomeSection
-            onSearchRides={handleSearchFromHome}
-            onNavigate={setCurrentTab}
-            onOpenCreateRide={() => setIsCreateModalOpen(true)}
-            activeRidesCount={activeRidesCount}
-          />
+          <>
+            {(!currentUser.accountType || currentUser.accountType === 'passenger') && (
+              <PassengerDashboard currentUser={currentUser} />
+            )}
+            {currentUser.accountType === 'driver' && (
+              <DriverDashboard currentUser={currentUser} />
+            )}
+          </>
         )}
 
         {/* 2. Available Rides Page */}

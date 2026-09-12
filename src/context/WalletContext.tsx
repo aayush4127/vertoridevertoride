@@ -33,27 +33,23 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [neonWarningToast, setNeonWarningToast] = useState<string | null>(null);
   const [successPaymentToast, setSuccessPaymentToast] = useState<string | null>(null);
 
-  // Restore and synchronize wallet whenever the user logs in
+  // Restore and synchronize wallet in real-time whenever the user logs in
   useEffect(() => {
-    let active = true;
-    const fetchWallet = async () => {
-      if (user?.uid || user?.id) {
-        const uid = user.uid || user.id;
-        const data = await FirebaseService.getWalletData(uid);
-        if (active && data) {
-          setBalance(data.balance);
-          setTransactions(data.transactions);
-        } else if (active) {
-          setBalance(0);
-          setTransactions([]);
-        }
-      } else {
-        setBalance(0);
-        setTransactions([]);
-      }
+    if (!user?.uid && !user?.id) {
+      setBalance(0);
+      setTransactions([]);
+      return;
+    }
+
+    const uid = user.uid || user.id;
+    const unsubscribe = FirebaseService.listenToWallet(uid, (data) => {
+      setBalance(data.balance);
+      setTransactions(data.transactions);
+    });
+
+    return () => {
+      unsubscribe();
     };
-    fetchWallet();
-    return () => { active = false; };
   }, [user?.uid, user?.id]);
 
   const openRechargeModal = (presetAmount?: number) => {
@@ -84,7 +80,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const clearSuccessPaymentToast = () => setSuccessPaymentToast(null);
 
-  const canAffordFare = (amount: number = 15): boolean => {
+  const canAffordFare = (amount: number = 10): boolean => {
     return balance >= amount;
   };
 
@@ -128,9 +124,9 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   /**
-   * Deducts fare (default ₹15) before ride confirmation
+   * Deducts fare (default ₹10) before ride confirmation
    */
-  const deductFare = (amount: number = 15, description: string = 'Campus Ride Seat Booking'): { success: boolean; message: string; remainingBalance: number } => {
+  const deductFare = (amount: number = 10, description: string = 'Campus Ride Seat Booking'): { success: boolean; message: string; remainingBalance: number } => {
     if (balance < amount || balance < 10) {
       triggerNeonWarningToast('Insufficient Balance in VertoPay! Please top up via UPI.');
       return {

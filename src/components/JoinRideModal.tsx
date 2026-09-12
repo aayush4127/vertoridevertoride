@@ -41,22 +41,21 @@ export const JoinRideModal: React.FC<JoinRideModalProps> = ({
   const [insufficientError, setInsufficientError] = useState<boolean>(false);
 
   // Exact standard campus pool seat pass fare
-  const fareToDeduct = 15;
+  const fareToDeduct = 10;
   const boardingOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
 
     // 1. FARE DEDUCTION & BALANCE CHECK LOGIC
-    // Check if balance is less than 15 or less than 10
-    if (balance < fareToDeduct || balance < 10) {
+    if (balance < fareToDeduct) {
       setInsufficientError(true);
       // Trigger vibrant floating neon-red warning toast as requested
       triggerNeonWarningToast('Insufficient Balance in VertoPay! Please top up via UPI.');
       return;
     }
 
-    // Deduct exactly ₹15 from localStorage wallet balance
+    // Deduct exactly ₹10 from wallet balance
     const deductionResult = deductFare(fareToDeduct, `Campus Pool: ${ride.pickup.name} to ${ride.destination.name}`);
     if (!deductionResult.success) {
       setInsufficientError(true);
