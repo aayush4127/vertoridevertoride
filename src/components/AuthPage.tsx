@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { VertoRideLogo } from './VertoRideLogo';
 import { UserAvatar } from './UserAvatar';
-import { getInitials } from '../utils/avatarUtils';
+import { getInitials, compressProfileImage } from '../utils/avatarUtils';
 import { 
   ShieldCheck, 
   Lock, 
@@ -57,7 +57,7 @@ export const AuthPage: React.FC = () => {
   const [photoOption, setPhotoOption] = useState<'upload' | 'initials'>('initials');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -66,22 +66,19 @@ export const AuthPage: React.FC = () => {
       return;
     }
 
-    // Limit to 4MB
-    if (file.size > 4 * 1024 * 1024) {
-      setValidationError('Image size must be less than 4MB.');
+    if (file.size > 8 * 1024 * 1024) {
+      setValidationError('Image size must be less than 8MB.');
       return;
     }
 
     setValidationError(null);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setSignUpData((prev) => ({ ...prev, avatar: result }));
-        setPhotoOption('upload');
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressProfileImage(file, 320, 0.85);
+      setSignUpData((prev) => ({ ...prev, avatar: compressed }));
+      setPhotoOption('upload');
+    } catch (err: any) {
+      setValidationError('Failed to process image. Please try another photo.');
+    }
   };
 
   const handleRemovePhoto = () => {
@@ -602,14 +599,15 @@ export const AuthPage: React.FC = () => {
                         onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
                         placeholder="Min 6 characters"
                         required
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -624,14 +622,15 @@ export const AuthPage: React.FC = () => {
                         onChange={(e) => setSignUpData({ ...signUpData, confirmPassword: e.target.value })}
                         placeholder="Re-enter password"
                         required
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title={showConfirmPassword ? "Hide password" : "Show password"}
                       >
-                        {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>

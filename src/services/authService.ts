@@ -202,6 +202,36 @@ export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentPr
   localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newProfile));
 
+  // Send branded welcome email via server-side Resend integration (non-blocking)
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    fetch('/api/send-welcome-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: newProfile.email,
+        name: newProfile.name,
+        appUrl: origin
+      })
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          console.warn('[Welcome Email] Dispatch returned non-200 status:', errData);
+        } else {
+          const resData = await response.json().catch(() => ({}));
+          console.log('[Welcome Email] Welcome email sent successfully to', newProfile.email, resData);
+        }
+      })
+      .catch((netErr) => {
+        console.warn('[Welcome Email] Failed to connect to email API route:', netErr);
+      });
+  } catch (err) {
+    console.warn('[Welcome Email] Error initiating welcome email dispatch:', err);
+  }
+
   return newProfile;
 }
 
