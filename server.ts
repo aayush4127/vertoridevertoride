@@ -97,9 +97,20 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
- * POST /api/send-welcome-email
- * Sends a branded welcome email to newly registered students via Gmail SMTP or Resend
+ * GET /api/send-welcome-email (diagnostic check)
+ * POST /api/send-welcome-email (send welcome email)
  */
+app.get('/api/send-welcome-email', (req, res) => {
+  const { transporter, fromEmail } = getTransporter();
+  const hasResend = Boolean(getResend());
+  res.json({
+    status: 'VERTORIDE Email API is active and online',
+    smtpConfigured: Boolean(transporter),
+    resendConfigured: hasResend,
+    senderEmail: fromEmail || (hasResend ? 'onboarding@resend.dev' : 'Not configured')
+  });
+});
+
 app.post('/api/send-welcome-email', async (req, res) => {
   const { email, name, appUrl } = req.body;
 
