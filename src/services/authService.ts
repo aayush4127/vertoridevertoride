@@ -1,11 +1,12 @@
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { StudentProfile, SignUpPayload } from '../types';
 import { CURRENT_USER } from '../data/lpuData';
 
 // Storage keys for local persistence until Firebase Auth is connected
 const AUTH_STORAGE_KEY = 'vertoride_auth_user';
-const USERS_STORAGE_KEY = 'vertoride_registered_users';
 
-// Pre-seeded demo student accounts for rapid testing & evaluation
 export const DEMO_STUDENT_MALE: StudentProfile = {
   ...CURRENT_USER,
   id: 'user-aarav-demo',
@@ -43,142 +44,66 @@ export const DEMO_STUDENT_FEMALE: StudentProfile = {
 };
 
 /**
- * =========================================================================
- * FIREBASE AUTH INTEGRATION BLUEPRINT:
- * 
- * When you configure Firebase in your project:
- * 1. Initialize Firebase in a `firebaseConfig.ts`:
- *    `import { initializeApp } from 'firebase/app';`
- *    `import { getAuth } from 'firebase/auth';`
- *    `import { getFirestore } from 'firebase/firestore';`
- * 2. In this authService:
- *    - Replace `signInWithEmail` with `signInWithEmailAndPassword(auth, email, password)`
- *    - Replace `signUpWithEmail` with `createUserWithEmailAndPassword(auth, email, password)`
- *      and save the profile to `setDoc(doc(db, 'users', userCredential.user.uid), profileData)`
- *    - Replace `signOutUser` with `signOut(auth)`
- *    - Listen to `onAuthStateChanged(auth, (user) => ...)`
- * 
- * All UI components consume `useAuth()` and require ZERO changes when Firebase is plugged in!
- * =========================================================================
- */
-
-// Helper to retrieve all registered accounts
-const getStoredAccounts = (): Record<string, { profile: StudentProfile; passwordHash: string }> => {
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY);
-    if (!raw) {
-      // Initialize with demo accounts
-      const initial: Record<string, { profile: StudentProfile; passwordHash: string }> = {
-        [DEMO_STUDENT_MALE.email.toLowerCase()]: {
-          profile: DEMO_STUDENT_MALE,
-          passwordHash: 'verto123'
-        },
-        [DEMO_STUDENT_FEMALE.email.toLowerCase()]: {
-          profile: DEMO_STUDENT_FEMALE,
-          passwordHash: 'verto123'
-        }
-      };
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initial));
-      return initial;
-    }
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error('Failed to read registered accounts from localStorage', err);
-    return {};
-  }
-};
-
-/**
  * Sign In with Email and Password
  */
 export async function signInWithEmail(email: string, password: string): Promise<StudentProfile> {
-  // Simulate network latency (200ms)
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
   const cleanEmail = email.trim().toLowerCase();
-  const accounts = getStoredAccounts();
-
-  // Check direct email match or registration number match
-  let match = accounts[cleanEmail];
-  if (!match) {
-    const byReg = Object.values(accounts).find(
-      (a) => a.profile.regNumber.toLowerCase() === cleanEmail
-    );
-    if (byReg) match = byReg;
+  
+  if (cleanEmail === DEMO_STUDENT_MALE.email.toLowerCase() && password === 'verto123') {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_STUDENT_MALE));
+    return DEMO_STUDENT_MALE;
   }
-
-  // If found in accounts
-  if (match) {
-    if (match.passwordHash && password && match.passwordHash !== password) {
-      // If demo account password mismatch, allow if it's verto123 or update
-      if (cleanEmail === DEMO_STUDENT_MALE.email.toLowerCase() || cleanEmail === DEMO_STUDENT_FEMALE.email.toLowerCase()) {
-        throw new Error('Incorrect password. For demo student accounts, use password "verto123".');
-      }
-    }
-    // Update active session
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(match.profile));
-    return match.profile;
+  if (cleanEmail === DEMO_STUDENT_FEMALE.email.toLowerCase() && password === 'verto123') {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(DEMO_STUDENT_FEMALE));
+    return DEMO_STUDENT_FEMALE;
   }
-
-  // If account was not pre-created, automatically generate a verified student profile
-  // so the user can enter the application seamlessly without roadblock
-  const derivedName = cleanEmail.includes('@')
-    ? cleanEmail.split('@')[0].replace(/[._0-9]/g, ' ').trim() || 'Verto Student'
-    : `Student ${cleanEmail}`;
-
-  const formattedName = derivedName
-    .split(' ')
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ') || 'Verto Student';
-
-  const regDigits = cleanEmail.replace(/[^0-9]/g, '');
-  const finalReg = regDigits.length >= 6 ? regDigits : `${Math.floor(12100000 + Math.random() * 899999)}`;
-  const finalEmail = cleanEmail.includes('@') ? cleanEmail : `${formattedName.toLowerCase().replace(/\s+/g, '')}.${finalReg}@lpu.in`;
-
-  const newId = `user-${Date.now()}`;
-  const autoProfile: StudentProfile = {
-    id: newId,
-    uid: newId,
-    name: formattedName,
-    email: finalEmail,
-    regNumber: finalReg,
-    course: 'B.Tech Computer Science & Engineering',
-    batch: '2024 - 2028',
-    avatar: '',
-    phone: '+91 98000-00000',
-    rating: 5.0,
-    totalRides: 0,
-    moneySaved: 0,
-    verifiedStudent: true,
-    blockOrHostel: 'BH-3',
-    gender: 'Male'
-  };
-
-  accounts[cleanEmail] = {
-    profile: autoProfile,
-    passwordHash: password || 'verto123'
-  };
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(autoProfile));
-
-  return autoProfile;
+  
+  const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+  const user = userCredential.user;
+  
+  const userDoc = await getDoc(doc(db, 'users', user.uid));
+  let profileData: StudentProfile;
+  if (userDoc.exists()) {
+    profileData = userDoc.data() as StudentProfile;
+  } else {
+    // If not exists in Firestore but exists in auth, create a minimal profile
+    profileData = {
+      id: user.uid,
+      uid: user.uid,
+      name: user.displayName || 'Verto Student',
+      email: user.email || cleanEmail,
+      regNumber: 'Unknown',
+      course: 'Unknown',
+      batch: 'Unknown',
+      avatar: user.photoURL || '',
+      phone: '',
+      rating: 5.0,
+      totalRides: 0,
+      moneySaved: 0,
+      verifiedStudent: true,
+      blockOrHostel: 'Unknown',
+      gender: 'Male'
+    };
+    await setDoc(doc(db, 'users', user.uid), profileData);
+  }
+  
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(profileData));
+  return profileData;
 }
 
 /**
  * Sign Up a new student
  */
 export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentProfile> {
-  // Simulate network latency (200ms)
-  await new Promise((resolve) => setTimeout(resolve, 200));
-
   const cleanEmail = payload.email.trim().toLowerCase();
-  const accounts = getStoredAccounts();
+  const password = payload.password || 'verto123';
+  
+  const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+  const user = userCredential.user;
 
-  const newId = `user-${Date.now()}`;
   const newProfile: StudentProfile = {
-    id: accounts[cleanEmail]?.profile.id || newId,
-    uid: accounts[cleanEmail]?.profile.uid || newId,
+    id: user.uid,
+    uid: user.uid,
     name: payload.name.trim() || 'Verto Student',
     email: cleanEmail,
     regNumber: payload.regNumber.trim() || `${Math.floor(12100000 + Math.random() * 899999)}`,
@@ -194,12 +119,7 @@ export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentPr
     gender: payload.gender || 'Male'
   };
 
-  // Save/overwrite in local storage
-  accounts[cleanEmail] = {
-    profile: newProfile,
-    passwordHash: payload.password || 'verto123'
-  };
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
+  await setDoc(doc(db, 'users', user.uid), newProfile);
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newProfile));
 
   // Send branded welcome email via server-side Resend integration (non-blocking)
@@ -215,19 +135,9 @@ export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentPr
         name: newProfile.name,
         appUrl: origin
       })
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          console.warn('[Welcome Email] Dispatch returned non-200 status:', errData);
-        } else {
-          const resData = await response.json().catch(() => ({}));
-          console.log('[Welcome Email] Welcome email sent successfully to', newProfile.email, resData);
-        }
-      })
-      .catch((netErr) => {
+    }).catch((netErr) => {
         console.warn('[Welcome Email] Failed to connect to email API route:', netErr);
-      });
+    });
   } catch (err) {
     console.warn('[Welcome Email] Error initiating welcome email dispatch:', err);
   }
@@ -239,7 +149,7 @@ export async function signUpWithEmail(payload: SignUpPayload): Promise<StudentPr
  * Sign Out Current User
  */
 export async function signOutUser(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  await signOut(auth);
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
@@ -285,16 +195,14 @@ export async function updateStoredUserProfile(updates: Partial<StudentProfile>):
     throw new Error('Storage limit reached. Please select a smaller photo.');
   }
 
-  // Update in accounts store as well
+  // Update in Firestore
   try {
-    const accounts = getStoredAccounts();
-    const emailKey = current.email.toLowerCase();
-    if (accounts[emailKey]) {
-      accounts[emailKey].profile = updated;
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(accounts));
+    const uid = updated.uid || updated.id;
+    if (uid && !uid.includes('demo')) {
+      await setDoc(doc(db, 'users', uid), updated, { merge: true });
     }
-  } catch (accountsErr) {
-    console.warn('Could not update all account backups', accountsErr);
+  } catch (err) {
+    console.warn('Could not update profile in Firestore', err);
   }
 
   return updated;

@@ -92,4 +92,15 @@ export interface MyBooking {
   coPassengers?: { name: string; course: string; phone: string }[];
 }
 
+export interface WalletTransaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  timestamp: string;
+  method?: string;
+  status?: 'success' | 'pending' | 'failed';
+  referenceId?: string;
+}
+
 export type PageTab = 'home' | 'book' | 'live' | 'find-students' | 'my-rides' | 'profile';

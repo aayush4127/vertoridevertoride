@@ -391,20 +391,28 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Verrto Ride server running on http://0.0.0.0:${PORT}`);
-    const { transporter, fromEmail } = getTransporter();
-    if (transporter) {
-      console.log(`📧 Gmail SMTP integration active with account: ${fromEmail}`);
-    } else if (process.env.RESEND_API_KEY) {
-      console.log('📧 Resend integration active with RESEND_API_KEY');
-    } else {
-      console.warn('⚠️ GMAIL_USER & GMAIL_APP_PASS are not set. Set them in Secrets panel to enable emails.');
-    }
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Verrto Ride server running on http://0.0.0.0:${PORT}`);
+      const { transporter, fromEmail } = getTransporter();
+      if (transporter) {
+        console.log(`📧 Gmail SMTP integration active with account: ${fromEmail}`);
+      } else if (process.env.RESEND_API_KEY) {
+        console.log('📧 Resend integration active with RESEND_API_KEY');
+      } else {
+        console.warn('⚠️ GMAIL_USER & GMAIL_APP_PASS are not set. Set them in Secrets panel to enable emails.');
+      }
+    });
+  }
+}
+
+// Only start the server automatically if we are not running inside a Vercel serverless environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer().catch((err) => {
+    console.error('Fatal error starting server:', err);
+    process.exit(1);
   });
 }
 
-startServer().catch((err) => {
-  console.error('Fatal error starting server:', err);
-  process.exit(1);
-});
+// Export the Express app for Vercel Serverless Server compatibility
+export default app;

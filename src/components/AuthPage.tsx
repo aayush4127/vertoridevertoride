@@ -135,7 +135,7 @@ export const AuthPage: React.FC = () => {
     clearError();
 
     if (!signInEmail.trim()) {
-      setValidationError('Please enter your LPU email or registration number.');
+      setValidationError('Please enter your email or registration number.');
       return;
     }
     if (!signInPassword) {
@@ -164,11 +164,11 @@ export const AuthPage: React.FC = () => {
       return;
     }
     if (!signUpData.regNumber.trim()) {
-      setValidationError('Please enter your LPU Registration Number (e.g. 12104523).');
+      setValidationError('Please enter your Registration Number (e.g. 12104523).');
       return;
     }
     if (!signUpData.email.trim()) {
-      setValidationError('Please enter your university email address.');
+      setValidationError('Please enter your email address.');
       return;
     }
     if (!signUpData.password) {
@@ -184,7 +184,7 @@ export const AuthPage: React.FC = () => {
       return;
     }
     if (!signUpData.agreeTerms) {
-      setValidationError('Please agree to the LPU campus transit code of conduct.');
+      setValidationError('Please agree to the campus transit code of conduct.');
       return;
     }
 
@@ -355,8 +355,8 @@ export const AuthPage: React.FC = () => {
                 {/* Email / Reg No */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>LPU Email or Registration Number</span>
-                    <span className="text-[11px] font-normal text-slate-400">e.g. 12115892 or @lpu.in</span>
+                    <span>Email Address or Reg Number</span>
+                    <span className="text-[11px] font-normal text-slate-400">Any email works</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -367,7 +367,7 @@ export const AuthPage: React.FC = () => {
                       id="signin-email-input"
                       value={signInEmail}
                       onChange={(e) => setSignInEmail(e.target.value)}
-                      placeholder="aarav.12115892@lpu.in or 12115892"
+                      placeholder="e.g. name@gmail.com or 12115892"
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                     />
                   </div>
@@ -519,8 +519,8 @@ export const AuthPage: React.FC = () => {
                 {/* University Email */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span>LPU Email Address</span>
-                    <span className="text-[10px] text-indigo-600 font-semibold">@lpu.in recommended</span>
+                    <span>Email Address</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Any email works</span>
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -531,7 +531,7 @@ export const AuthPage: React.FC = () => {
                       id="signup-email-input"
                       value={signUpData.email}
                       onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
-                      placeholder="name.12104523@lpu.in"
+                      placeholder="e.g. name@gmail.com"
                       required
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                     />
