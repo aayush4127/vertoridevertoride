@@ -1,33 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Auth helper
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      // Allow create/update for the owner
-      allow write: if isAuthenticated() && request.auth.uid == userId;
-    }
-
-    match /rideRequests/{requestId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /wallets/{walletId} {
-      allow read, write: if isAuthenticated();
-      
-      match /transactions/{txId} {
-        allow read, write: if isAuthenticated();
-      }
-    }
-    
-    // Default fallback (block)
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }

@@ -164,7 +164,7 @@ export const AuthPage: React.FC = () => {
       setValidationError('Please enter your full name.');
       return;
     }
-    if (!signUpData.regNumber.trim()) {
+    if (signUpData.accountType === 'passenger' && !signUpData.regNumber.trim()) {
       setValidationError('Please enter your Registration Number (e.g. 12104523).');
       return;
     }
@@ -195,11 +195,11 @@ export const AuthPage: React.FC = () => {
         name: signUpData.name,
         email: signUpData.email,
         password: signUpData.password,
-        regNumber: signUpData.regNumber,
-        course: signUpData.course,
+        regNumber: signUpData.accountType === 'passenger' ? signUpData.regNumber : 'DRIVER-' + Math.floor(1000 + Math.random() * 9000),
+        course: signUpData.accountType === 'passenger' ? signUpData.course : 'Driver Partner',
         phone: signUpData.phone || '+91 98000-00000',
         gender: signUpData.gender,
-        blockOrHostel: signUpData.blockOrHostel,
+        blockOrHostel: signUpData.accountType === 'passenger' ? signUpData.blockOrHostel : 'Driver Hub',
         avatar: signUpData.avatar || '',
         accountType: signUpData.accountType
       });
@@ -509,43 +509,45 @@ export const AuthPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Reg Number and Gender Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Registration No */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Registration Number</label>
-                    <input
-                      type="text"
-                      id="signup-reg-input"
-                      value={signUpData.regNumber}
-                      onChange={(e) => setSignUpData({ ...signUpData, regNumber: e.target.value })}
-                      placeholder="e.g. 12104523"
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-                    />
-                  </div>
+                {/* Reg Number and Gender Row (Passengers only) */}
+                {signUpData.accountType === 'passenger' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Registration No */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Registration Number</label>
+                      <input
+                        type="text"
+                        id="signup-reg-input"
+                        value={signUpData.regNumber}
+                        onChange={(e) => setSignUpData({ ...signUpData, regNumber: e.target.value })}
+                        placeholder="e.g. 12104523"
+                        required
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                      />
+                    </div>
 
-                  {/* Gender Selection */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Gender (For Hostel/Ride Filter)</label>
-                    <div className="grid grid-cols-3 gap-1">
-                      {(['Male', 'Female', 'Other'] as const).map((g) => (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setSignUpData({ ...signUpData, gender: g })}
-                          className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
-                            signUpData.gender === g
-                              ? 'bg-indigo-600 text-white shadow-2xs'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                          }`}
-                        >
-                          {g}
-                        </button>
-                      ))}
+                    {/* Gender Selection */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Gender (For Hostel/Ride Filter)</label>
+                      <div className="grid grid-cols-3 gap-1">
+                        {(['Male', 'Female', 'Other'] as const).map((g) => (
+                          <button
+                            key={g}
+                            type="button"
+                            onClick={() => setSignUpData({ ...signUpData, gender: g })}
+                            className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
+                              signUpData.gender === g
+                                ? 'bg-indigo-600 text-white shadow-2xs'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            }`}
+                          >
+                            {g}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : null}
 
                 {/* University Email */}
                 <div className="space-y-1.5">
@@ -569,36 +571,38 @@ export const AuthPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Course & Residence Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Course */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Academic Program</label>
-                    <select
-                      value={signUpData.course}
-                      onChange={(e) => setSignUpData({ ...signUpData, course: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
-                    >
-                      {coursesList.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Course & Residence Row (Passengers only) */}
+                {signUpData.accountType === 'passenger' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Course */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Academic Program</label>
+                      <select
+                        value={signUpData.course}
+                        onChange={(e) => setSignUpData({ ...signUpData, course: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                      >
+                        {coursesList.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                  {/* Hostel / Residence */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Hostel or Residence</label>
-                    <select
-                      value={signUpData.blockOrHostel}
-                      onChange={(e) => setSignUpData({ ...signUpData, blockOrHostel: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
-                    >
-                      {residencesList.map((r) => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
+                    {/* Hostel / Residence */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Hostel or Residence</label>
+                      <select
+                        value={signUpData.blockOrHostel}
+                        onChange={(e) => setSignUpData({ ...signUpData, blockOrHostel: e.target.value })}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                      >
+                        {residencesList.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 {/* Phone Number */}
                 <div className="space-y-1.5">
